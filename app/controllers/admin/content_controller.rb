@@ -159,7 +159,7 @@ class Admin::ContentController < Admin::BaseController
     @article.keywords = Tag.collection_to_string @article.tags
     @article.attributes = params[:article]
     # TODO: Consider refactoring, because double rescue looks... weird.
-        
+    
     @article.published_at = DateTime.strptime(params[:article][:published_at], "%B %e, %Y %I:%M %p GMT%z").utc rescue Time.parse(params[:article][:published_at]).utc rescue nil
 
     if request.post?
@@ -168,6 +168,34 @@ class Admin::ContentController < Admin::BaseController
       
       @article.state = "draft" if @article.draft
 
+		  if params[:merge_with] != nil then
+		  	if !current_user.admin? then
+		  		redirect_to :action => 'index' 
+		  		flash[:error] = _("Error, you are not allowed to perform this action")
+		  		return
+		  	end
+		  	if !params[:merge_id].match(/^(\d+)$/) then
+		  		redirect_to :action => 'index' 
+		  		flash[:error] = _("#{params[:merge_id]} Error, the Article ID is invalid")
+		  		return
+		  	end
+		  	@other_article = Article.find_by_id(params[:merge_id].to_i)
+		  	if @other_article == nil then
+		  		redirect_to :action => 'index'
+		  		flash[:error] = _("Error, the Article with ID #{params[:merge_id]} doesn't exist")
+		  		return
+		  	end
+		  	if @other_article.id.to_i == id.to_i then
+		  		redirect_to :action => 'index'
+		  		flash[:error] = _("Error, should not merge with the article itself")
+		  		return
+		  	end
+		  	@other_article.comments.each do |x|
+		  		@article.comments << x
+		  	end
+		  	@other_article.reload
+		  	@other_article.destroy
+		  end
       if @article.save
         destroy_the_draft unless @article.draft
         set_article_categories
@@ -176,7 +204,7 @@ class Admin::ContentController < Admin::BaseController
         return
       end
     end
-
+    
     @images = Resource.images_by_created_at.page(params[:page]).per(10)
     @resources = Resource.without_images_by_filename
     @macros = TextFilter.macro_filters

@@ -147,6 +147,11 @@
       <%= render 'admin/content/attachment', { :attachment_num => 1, :hidden => false } -%>
     </ul>
   </div>    
+  <div>
+    <h4><%= _("Merge Articles") %></h4>
+    Article ID
+    <input id="merge" type="text" name='merge_id' class='large' />
+    <%= submit_tag(_("Merge"), {:class => 'btn', :name => "merge_with" }) %>
   </div>
 
 </div>
